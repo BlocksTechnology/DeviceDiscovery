@@ -1,0 +1,11 @@
+# OPTIONAL - installed only by `scripts/install.sh --usb-access`.
+#
+# libusb has to open a device to read its manufacturer/product/serial string
+# descriptors. Without this rule, devices the daemon can't open are named
+# "USB 0xVVVV:0xPPPP" instead.
+#
+# Trade-off: this gives the plugdev group read/write access to EVERY USB
+# device node, not just read access to names. Reading the same strings from
+# sysfs (/sys/bus/usb/devices/*/{manufacturer,product,serial}) needs no
+# permissions at all and is the better long-term fix.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", MODE="0664", GROUP="plugdev"

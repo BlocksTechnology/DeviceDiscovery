@@ -1,0 +1,13 @@
+[project]
+name="BS-Dev-Discovery"
+version="0.1.0"
+description="Device discovery for BlocksScreen GUI"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["scikit-build-core>=0.5", "pybind11>=2.12"]
+build-backend = "scikit-build-core.build"
+
+[tool.scikit-build]
+cmake.build-type = "Dev"
+wheel.expand-macos-universal-tags = false

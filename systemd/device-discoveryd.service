@@ -1,0 +1,33 @@
+[Unit]
+Description=BlocksScreen device discovery daemon
+After=systemd-udevd.service
+# Up before the UI so its first connection attempt usually succeeds; the
+# client reconnects with backoff either way.
+Before=BlocksScreen.service
+
+[Service]
+Type=simple
+User=blocks
+Group=blocksscreen
+# plugdev: lets libusb open devices to read manufacturer/product strings
+# (only effective together with udev/70-device-discovery-usb.rules).
+SupplementaryGroups=plugdev
+# Own runtime dir: systemd deletes it on stop, so it must not be shared
+# with /run/blockscreen (updater status file lives there).
+RuntimeDirectory=device-discovery
+RuntimeDirectoryMode=0750
+# Socket ends up 0770 -> readable by the blocksscreen group (BlocksScreen.service).
+UMask=0007
+ExecStart=/home/blocks/DeviceDiscovery/build/device_discoveryd --socket /run/device-discovery/device_discovery.sock
+Restart=on-failure
+RestartSec=2
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+# AF_NETLINK: udev monitor. AF_UNIX: IPC socket.
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
