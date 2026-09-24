@@ -22,6 +22,9 @@ udev/                 optional USB permission rule
 scripts/install.sh    one-time machine setup (sudo)
 scripts/build.sh      incremental daemon-only build (run on every update)
 docs/PROTOCOL.md      socket protocol: the contract with BlocksScreen
+docs/WORKFLOW.md      CI/CD: what GitHub Actions checks, how releases work
+scripts/smoke_test.py daemon handshake check (used by CI)
+.github/workflows/    CI and release workflows
 ANALYSIS.md           code analysis and known problems
 ```
 
@@ -56,3 +59,5 @@ pip install .
 ```
 
 Logs under systemd: `journalctl -u device-discoveryd -f`.
+
+CI runs on every pull request; see [docs/WORKFLOW.md](docs/WORKFLOW.md) for what it checks and how to run the same checks locally.
