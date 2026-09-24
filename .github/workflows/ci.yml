@@ -43,8 +43,8 @@ jobs:
         # updater's real limit is 60 s on the device.
         run: time scripts/build.sh
 
-      - name: Smoke test
-        run: scripts/smoke_test.py build/device_discoveryd
+      - name: Smoke test (installed binary)
+        run: scripts/smoke_test.py bin/device_discoveryd
 
   # Every target in Debug, including the CLI and the pybind11 module.
   full-build:

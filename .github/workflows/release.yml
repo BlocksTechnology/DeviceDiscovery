@@ -1,8 +1,11 @@
 name: Release
 
-# Printers update by git pull + scripts/build.sh, so nothing here is deployed
-# automatically. Pushing a v* tag publishes prebuilt bookworm daemons as
-# GitHub Release assets, for machines that shouldn't build from source.
+# Pushing a v* tag publishes prebuilt bookworm daemons as GitHub Release
+# assets. Printers set up with `install.sh --prebuilt` download them through
+# scripts/fetch_release.sh; the rest keep compiling with scripts/build.sh.
+#
+# Asset names carry no version, so releases/latest/download/<name> always
+# resolves; the version is in the VERSION file inside each tarball.
 
 on:
   push:
@@ -37,22 +40,24 @@ jobs:
         run: scripts/build.sh
 
       - name: Smoke test
-        run: scripts/smoke_test.py build/device_discoveryd
+        run: scripts/smoke_test.py bin/device_discoveryd
 
       - name: Package
         run: |
-          name="device_discoveryd-${GITHUB_REF_NAME}-bookworm-${{ matrix.arch }}"
-          mkdir "$name"
-          cp build/device_discoveryd "$name/"
-          strip "$name/device_discoveryd"
-          cp -r systemd udev docs/PROTOCOL.md LICENSE "$name/"
+          name="device_discoveryd-bookworm-${{ matrix.arch }}"
+          mkdir -p dist/"$name"
+          cp bin/device_discoveryd dist/"$name"/
+          strip dist/"$name"/device_discoveryd
+          echo "$GITHUB_REF_NAME $GITHUB_SHA" > dist/"$name"/VERSION
+          cp -r systemd udev docs/PROTOCOL.md LICENSE dist/"$name"/
+          cd dist
           tar czf "$name.tar.gz" "$name"
           sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
           name: daemon-${{ matrix.arch }}
-          path: device_discoveryd-*.tar.gz*
+          path: dist/device_discoveryd-*.tar.gz*
 
   publish:
     needs: build
@@ -73,3 +78,32 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
             device_discoveryd-*.tar.gz*
+
+  # Installs the just-published release the way a --prebuilt printer does,
+  # then runs it.
+  verify:
+    name: verify (bookworm ${{ matrix.arch }})
+    needs: publish
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:bookworm
+    steps:
+      - name: Install runtime dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            curl ca-certificates git python3 libusb-1.0-0 libudev1
+
+      - uses: actions/checkout@v4
+
+      - name: Fetch release
+        run: DD_GH_REPO="$GITHUB_REPOSITORY" scripts/fetch_release.sh "$GITHUB_REF_NAME"
+
+      - name: Smoke test
+        run: scripts/smoke_test.py bin/device_discoveryd
