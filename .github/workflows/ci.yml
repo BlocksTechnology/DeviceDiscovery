@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The on-device path: scripts/build.sh inside Debian bookworm (what the
+  # printers run), on both architectures, then a daemon handshake check.
+  daemon:
+    name: daemon (bookworm ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:bookworm
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config git ca-certificates python3 \
+            libusb-1.0-0-dev libudev-dev nlohmann-json3-dev
+
+      - uses: actions/checkout@v4
+
+      - name: Build (scripts/build.sh)
+        # Runner speed isn't a Pi's, so this only reports the time; the
+        # updater's real limit is 60 s on the device.
+        run: time scripts/build.sh
+
+      - name: Smoke test (installed binary)
+        run: scripts/smoke_test.py bin/device_discoveryd
+
+  # Every target in Debug, including the CLI and the pybind11 module.
+  full-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libusb-1.0-0-dev libudev-dev nlohmann-json3-dev
+
+      - name: Configure
+        run: cmake -S . -B build-dev -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build all targets
+        run: cmake --build build-dev -j"$(nproc)"
+
+      - name: Run CLI
+        run: build-dev/device_discovery
+
+      - name: Smoke test (Debug daemon)
+        run: python3 scripts/smoke_test.py build-dev/device_discoveryd
+
+  python:
+    name: python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libusb-1.0-0-dev libudev-dev nlohmann-json3-dev
+
+      - name: pip install .
+        run: pip install -v .
+
+      - name: Import and scan
+        run: |
+          cd /tmp
+          python - <<'EOF'
+          import DeviceDiscovery as dd
+          serial = dd.scan_serial()
+          usb = dd.scan_all_usb()
+          print(f"serial={serial}\nusb={usb}")
+          assert isinstance(serial, list) and isinstance(usb, list)
+          EOF

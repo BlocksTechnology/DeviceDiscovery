@@ -5,3 +5,5 @@ compile_commands.json
 __pycache__/
 *.so
 *.pyc
+bin/
+.install-mode

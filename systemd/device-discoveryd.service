@@ -18,7 +18,9 @@ RuntimeDirectory=device-discovery
 RuntimeDirectoryMode=0750
 # Socket ends up 0770 -> readable by the blocksscreen group (BlocksScreen.service).
 UMask=0007
-ExecStart=/home/blocks/DeviceDiscovery/build/device_discoveryd --socket /run/device-discovery/device_discovery.sock
+# bin/ holds whichever daemon was installed last: compiled here by
+# scripts/build.sh or downloaded by scripts/fetch_release.sh.
+ExecStart=/home/blocks/DeviceDiscovery/bin/device_discoveryd --socket /run/device-discovery/device_discovery.sock
 Restart=on-failure
 RestartSec=2
 
