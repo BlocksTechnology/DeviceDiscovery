@@ -2,6 +2,8 @@
 
 This is the contract between `device_discoveryd` and its clients, such as BlocksScreen's `devices/discovery/client.py`. The two live in separate repos, so any incompatible change here must bump `proto`.
 
+For how the daemon and BlocksScreen fit around this protocol, see the architecture diagrams: <https://claude.ai/artifact/8n51G5sNt9RdY5WbqzeBue>.
+
 ## Transport
 
 - Unix stream socket. Path, in order of precedence:

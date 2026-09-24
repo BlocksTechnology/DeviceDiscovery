@@ -1,6 +1,6 @@
 # DeviceDiscovery: Analysis Report
 
-_Analysis date: 2026-09-23, written while the tool still lived in BlocksScreen at `BlocksScreen/tools/DeviceDiscovery/` (before the move to this repo). Since then: the Python client moved to BlocksScreen as `BlocksScreen/devices/discovery/client.py`, Problem 3 (CMake `GIT_TAG`) is fixed, and `pyproject.toml` now requires Python `>=3.11`._
+_Analysis date: 2026-09-23, written while the tool still lived in BlocksScreen at `BlocksScreen/tools/DeviceDiscovery/` (before the move to this repo). Since then: the Python client moved to BlocksScreen as `BlocksScreen/devices/discovery/client.py`, Problems 1–3 (firmware detection, `is_klipper`/`is_katapult`, CMake `GIT_TAG`) are fixed, and `pyproject.toml` now requires Python `>=3.11`._
 
 ## What it is
 
@@ -83,12 +83,12 @@ It was built from source and run against fake `/dev/serial/by-id` entries in a p
 
 ### Broken
 
-1. **Serial firmware is never detected.** `SerialScanner::parseSymlink` never calls `detectFirmware()`, so every serial device comes back `Unknown`. Knock-on effects:
+1. _(fixed: `parseSymlink` now calls `detectFirmware`)_ **Serial firmware is never detected.** `SerialScanner::parseSymlink` never calls `detectFirmware()`, so every serial device comes back `Unknown`. Knock-on effects:
    - `mcu_type` is never filled in.
    - `scan_klipper()` and `scan_katapult()` always return `[]`, and `scan_unflashed()` returns everything.
 
    Seen: fake devices including `usb-Klipper_stm32h723xx_…` and `usb-Katapult_rp2040_…` all came back `[Unknown]`. The pure-Python `tools/serial_scanner.py` does call its detector, so the two versions already disagree.
-2. **Wrong keyword checks for `is_klipper`/`is_katapult`** in `parseSymlink`. They test `"Klipper "` (with a trailing space, but link names use underscores) and `"Canboot"` (the detector uses `"CanBoot"`). Neither can ever match. The JSON and Python outputs recompute these from `firmware` anyway.
+2. _(fixed: derived from `firmware`)_ **Wrong keyword checks for `is_klipper`/`is_katapult`** in `parseSymlink`. They test `"Klipper "` (with a trailing space, but link names use underscores) and `"Canboot"` (the detector uses `"CanBoot"`). Neither can ever match. The JSON and Python outputs recompute these from `firmware` anyway.
 3. ~~**CMake typo:**~~ _(fixed)_ `GIT TAG V3.1.0` in the pybind11 `FetchContent_Declare` should be `GIT_TAG`. This only matters on machines without pybind11 installed system-wide.
 
 ### Design gaps to decide on

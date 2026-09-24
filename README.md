@@ -2,6 +2,8 @@
 
 Finds hardware attached to a Blocks printer's host: serial boards under `/dev/serial/by-id`, USB devices (including cameras), and later CAN nodes. It runs as a background service (`device_discoveryd`) that watches udev for plug and unplug events and reports them to [BlocksScreen](https://github.com/BlocksTechnology/BlocksScreen) over a Unix socket.
 
+**Architecture diagrams** (runtime wiring, hotplug debounce, deployment, migration status): <https://claude.ai/artifact/8n51G5sNt9RdY5WbqzeBue>
+
 Three ways to use it:
 
 | Mode | Target | Used by |
